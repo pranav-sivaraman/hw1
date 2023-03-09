@@ -63,7 +63,39 @@ void SerialListRanking(ListNode* head) {
 // Work = O(n*\log(n))
 // Depth = O(\log^2(n))
 void WyllieListRanking(ListNode* L, size_t n) {
+  int* succ = new int[n];
+  int* succ_prime = new int[n];
+  int* rank_prime = new int[n];
 
+  parallel_for(0, n, [&](size_t i) {
+    if (L[i].next != nullptr) {
+      L[i].rank = 1;
+      succ[i] = L[i].next - L;
+    } else {
+      L[i].rank = 0;
+      succ[i] = 0;
+    }
+  });
+
+  for (int k = 0; k < log2_up(n); k++) {
+    parallel_for(0, n, [&](size_t i) {
+      if (succ[i] != 0) {
+        rank_prime[i] = L[i].rank + L[succ[i]].rank; // Need seperate buffer to store intermediate ranks. Issues can rise when # of threads < N
+        succ_prime[i] = succ[succ[i]];
+      } else {
+        succ_prime[i] = succ[i];
+      }
+    });
+
+    parallel_for(0, n, [&](size_t i) {
+      succ[i] = succ_prime[i];
+      L[i].rank = rank_prime[i];
+    });
+  }
+
+  delete [] rank_prime;
+  delete [] succ;
+  delete [] succ_prime;
 }
 
 
